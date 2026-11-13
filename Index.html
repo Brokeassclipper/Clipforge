@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>ClipForge AI</title>
+
+<style>
+
+* { box-sizing:border-box; }
+
+body {
+
+  margin:0;
+
+  background:#10111a;
+
+  color:#f5f5fa;
+
+  font-family:Arial,sans-serif;
+
+  padding:22px 16px;
+
+}
+
+header { margin-bottom:28px; }
+
+.logo { font-size:25px;font-weight:800; }
+
+.logo span { color:#a78bfa; }
+
+.subtitle { color:#999bad;font-size:13px;margin-top:6px; }
+
+h2 { font-size:17px;margin:22px 0 12px; }
+
+.panel {
+
+  background:#1b1d2a;
+
+  border:1px solid #303244;
+
+  border-radius:14px;
+
+  padding:16px;
+
+  margin-bottom:16px;
+
+}
+
+input,textarea,button {
+
+  width:100%;
+
+  border-radius:9px;
+
+  padding:13px;
+
+  font-size:14px;
+
+}
+
+input,textarea {
+
+  background:#11131e;
+
+  color:white;
+
+  border:1px solid #393c50;
+
+}
+
+textarea { min-height:110px;resize:vertical; }
+
+button {
+
+  background:#7955dc;
+
+  color:white;
+
+  border:0;
+
+  font-weight:bold;
+
+  margin-top:12px;
+
+  cursor:pointer;
+
+}
+
+button.secondary { background:#303347; }
+
+video {
+
+  width:100%;
+
+  border-radius:10px;
+
+  background:#000;
+
+  margin-top:12px;
+
+  max-height:400px;
+
+}
+
+label {
+
+  display:block;
+
+  color:#b7b8c8;
+
+  font-size:12px;
+
+  margin:14px 0 7px;
+
+}
+
+.times {
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:12px;
+
+}
+
+.clip {
+
+  padding:12px;
+
+  background:#252739;
+
+  border-radius:9px;
+
+  margin-top:10px;
+
+  font-size:13px;
+
+}
+
+.small { color:#999bad;font-size:12px; }
+
+#status { color:#a78bfa;font-size:13px;margin-top:12px; }
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+  <div class="logo">✂ Clip<span>Forge</span></div>
+
+  <div class="subtitle">Your personal AI video clipping studio</div>
+
+</header>
+
+<div class="panel">
+
+  <h2>01 / Upload your video</h2>
+
+  <input type="file" id="upload" accept="video/*">
+
+  <video id="video" controls playsinline hidden></video>
+
+  <p class="small" id="videoInfo">No video selected yet.</p>
+
+</div>
+
+<div class="panel">
+
+  <h2>02 / Video transcript</h2>
+
+  <textarea id="transcript"
+
+    placeholder="Paste your video transcript here..."></textarea>
+
+  <p class="small">Use this to identify interesting moments.</p>
+
+</div>
+
+<div class="panel">
+
+  <h2>03 / Create a clip</h2>
+
+  <div class="times">
+
+    <div>
+
+      <label>Start time (seconds)</label>
+
+      <input type="number" id="start" min="0" value="0">
+
+    </div>
+
+    <div>
+
+      <label>End time (seconds)</label>
+
+      <input type="number" id="end" min="1" value="30">
+
+    </div>
+
+  </div>
+
+  <button class="secondary" id="setStart">Use current video time as start</button>
+
+  <button class="secondary" id="setEnd">Use current video time as end</button>
+
+  <button id="addClip">+ Add clip to my list</button>
+
+  <p id="status">Ready when you are.</p>
+
+</div>
+
+<div class="panel">
+
+  <h2>04 / Your clips</h2>
+
+  <div id="clips">
+
+    <p class="small">Your selected clips will appear here.</p>
+
+  </div>
+
+</div>
+
+<script>
+
+const upload = document.getElementById('upload');
+
+const video = document.getElementById('video');
+
+const start = document.getElementById('start');
+
+const end = document.getElementById('end');
+
+const clips = document.getElementById('clips');
+
+const status = document.getElementById('status');
+
+let videoURL = null;
+
+let clipList = [];
+
+let activeClip = null;
+
+upload.addEventListener('change', () => {
+
+  const file = upload.files[0];
+
+  if (!file) return;
+
+  if (videoURL) URL.revokeObjectURL(videoURL);
+
+  videoURL = URL.createObjectURL(file);
+
+  video.src = videoURL;
+
+  video.hidden = false;
+
+  document.getElementById('videoInfo').textContent =
+
+    file.name + ' • ' + (file.size / 1048576).toFixed(1) + ' MB';
+
+  status.textContent = 'Video loaded successfully!';
+
+});
+
+document.getElementById('setStart').onclick = () => {
+
+  if (!video.src) return alert('Upload a video first.');
+
+  start.value = video.currentTime.toFixed(1);
+
+};
+
+document.getElementById('setEnd').onclick = () => {
+
+  if (!video.src) return alert('Upload a video first.');
+
+  end.value = video.currentTime.toFixed(1);
+
+};
+
+document.getElementById('addClip').onclick = () => {
+
+  if (!videoURL) return alert('Upload a video first.');
+
+  const s = Number(start.value);
+
+  const e = Number(end.value);
+
+  if (s < 0 || e <= s || e > video.duration) {
+
+    return alert('Please enter valid start and end times.');
+
+  }
+
+  clipList.push({start:s,end:e});
+
+  renderClips();
+
+  status.textContent = 'Clip added to your list!';
+
+};
+
+function renderClips() {
+
+  clips.innerHTML = '';
+
+  clipList.forEach((clip,index) => {
+
+    const item = document.createElement('div');
+
+    item.className = 'clip';
+
+    const title = document.createElement('strong');
+
+    title.textContent = 'Clip ' + (index + 1);
+
+    const timing = document.createElement('p');
+
+    timing.textContent = clip.start.toFixed(1) +
+
+      's – ' + clip.end.toFixed(1) + 's';
+
+    const play = document.createElement('button');
+
+    play.textContent = '▶ Preview clip';
+
+    play.onclick = () => playClip(index);
+
+    item.append(title,timing,play);
+
+    clips.appendChild(item);
+
+  });
+
+}
+
+function playClip(index) {
+
+  activeClip = clipList[index];
+
+  video.currentTime = activeClip.start;
+
+  video.play();
+
+}
+
+video.addEventListener('timeupdate', () => {
+
+  if (activeClip && video.currentTime >= activeClip.end) {
+
+    video.pause();
+
+    activeClip = null;
+
+  }
+
+});
+
+</script>
+
+</body>
+
+</html>
