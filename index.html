@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -21,9 +22,15 @@
     </section>
 
     <section class="panel">
-      <h2>02 / Video transcript</h2>
-      <textarea id="transcript" placeholder="Paste your video transcript here..."></textarea>
-      <p class="small">Use this to identify interesting moments.</p>
+      <h2>02 / Find highlights</h2>
+      <p class="small">Paste a transcript with timestamps to discover exciting moments.</p>
+      <textarea id="transcript" placeholder="Example:
+[00:02:14] Wait, WHAT IS THAT?!
+[00:02:19] NO WAY! THAT JUST HAPPENED!
+[00:02:25] I've never seen anything like that before."></textarea>
+      <button id="findHighlights">Find exciting moments</button>
+      <p class="small" id="highlightStatus" role="status" aria-live="polite">Waiting for transcript.</p>
+      <div id="suggestions"></div>
     </section>
 
     <section class="panel">
